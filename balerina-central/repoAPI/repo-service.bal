@@ -1,19 +1,20 @@
-package repoAPI;
-
 import ballerina/http;
 import ballerina/io;
 import ballerina/auth;
 import ballerina/runtime;
 
-http:AuthProvider jwtAuthProvider = {
-    scheme:"jwt",
-    id:"test",
-    issuer:"wso2",
+http:AuthProvider basicAuthProvider = {
+    scheme:"basic",
+    authProvider:"config",
+    issuer:"ballerina",
     audience:"ballerina",
-    certificateAlias:"ballerina",
-    trustStore:
+    keyAlias:"ballerina",
+    keyPassword:"ballerina",
+    expTime:600,
+    signingAlg:"RS256",
+    keyStore:
     {
-        filePath:"/home/ishara/wso2/ballerina/security/ballerinaTruststore.p12",
+        path:"/home/ishara/wso2/ballerina/security/ballerinaKeystore.p12",
         password:"ballerina"
     }
 };
@@ -21,19 +22,19 @@ http:AuthProvider jwtAuthProvider = {
 endpoint http:SecureListener repoEP {
     port:9096,
     authProviders:
-    [jwtAuthProvider],
+    [basicAuthProvider],
     secureSocket:
     {
         keyStore:
         {
-            filePath:"${ballerina.home}/bre/security/ballerinaKeystore.p12",
+            path:"${ballerina.home}/bre/security/ballerinaKeystore.p12",
             password:"ballerina"
         }
     }
 };
 
 endpoint http:Client orgService {
-    targets:[{url:"https://localhost:9098"}],
+    url:"https://localhost:9098",
     auth:{scheme: "jwt"}
 
 };
@@ -57,11 +58,11 @@ service<http:Service> repos bind repoEP {
     }
     getRepos (endpoint outboundEP, http:Request req) {
 
-        string username = runtime:getInvocationContext().authenticationContext.username;
+        string username = runtime:getInvocationContext().userPrincipal.username;
         string organization = getOrganizationList(username);
 
         http:Response res = new;
-        res. setStringPayload (getRepoListOfUser(username, organization ) +" \n");
+        res. setTextPayload(getRepoListOfUser(username, organization ) +" \n");
         _ = outboundEP -> respond (res);
     }
 }
@@ -69,13 +70,10 @@ service<http:Service> repos bind repoEP {
 function getOrganizationList (string userName) returns string {
 
     string organization = "default";
-    string authToken = runtime:getInvocationContext().authenticationContext.authToken;
 
     string reqPath = "/org/"+userName;
     http:Request clientRequest = new;
-    //clientRequest.setHeader("Authorization", "Bearer " + authToken );
-    //clientRequest.setHeader("Authorization", "Bearer " + authToken );
-    var clientResponse = orgService -> get(reqPath, clientRequest);
+    var clientResponse = orgService -> get(reqPath, request = clientRequest);
 
     match clientResponse {
         http:HttpConnectorError err => {

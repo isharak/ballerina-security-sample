@@ -1,5 +1,3 @@
-package orgAPI;
-
 import ballerina/http;
 import ballerina/io;
 import ballerina/auth;
@@ -8,12 +6,13 @@ import ballerina/runtime;
 http:AuthProvider jwtAuthProvider = {
     scheme:"jwt",
     id:"test",
-    issuer:"wso2",
+    issuer:"ballerina",
     audience:"ballerina",
     certificateAlias:"ballerina",
+    clockSkew:10,
     trustStore:
     {
-        filePath:"/home/ishara/wso2/ballerina/security/ballerinaTruststore.p12",
+        path:"/home/ishara/wso2/ballerina/security/ballerinaTruststore.p12",
         password:"ballerina"
     }
 };
@@ -26,7 +25,7 @@ endpoint http:SecureListener orgEP {
     {
         keyStore:
         {
-            filePath:"${ballerina.home}/bre/security/ballerinaKeystore.p12",
+            path:"${ballerina.home}/bre/security/ballerinaKeystore.p12",
             password:"ballerina"
         }
     }
